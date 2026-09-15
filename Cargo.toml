@@ -1,0 +1,19 @@
+[package]
+name = "http_client"
+version = "0.1.0"
+authors = ["Brian Taylor <brian@resolvingarchitecture.io>"]
+license = "MIT"
+edition = "2021"
+description = "A plain HTTP/HTTPS client for 1M5: ports http-client-java's HTTPService (outbound only)"
+homepage = "https://resolvingarchitecture.io"
+repository = "https://github.com/resolvingarchitecture/http-client-rust"
+readme = "README.md"
+keywords = ["http", "https", "client", "1m5"]
+categories = ["network-programming"]
+
+[dependencies]
+log = "0.4"
+ra-common = { path = "../../common/ra-common-rust" }
+ureq = { version = "3", default-features = false, features = ["rustls", "socks-proxy"] }
+
+[dev-dependencies]
