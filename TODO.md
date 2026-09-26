@@ -16,6 +16,19 @@
 - [x] Optional HTTP/SOCKS5 proxy (`ra.http.proxy`).
 - [x] Consumed by `1m5-core-rust` as `onemfive_core::protocol::HttpProtocolService`.
 
+## P0.5 — Identity metadata leaks
+- [x] **Fixed 2026-09-26**: no default `User-Agent` was set, and `ureq` is
+      documented to inject its own `ureq/<version>` - see DESIGN.md
+      "Identity metadata leaks". Now sends `DEFAULT_USER_AGENT` (generic)
+      when the caller hasn't supplied one. `cargo build`/`cargo test` pass
+      (6 tests + doctest, including live network tests).
+- [ ] **Verify, don't just cite the crate's docs**: confirm `ureq`'s
+      `socks5://` proxy support genuinely resolves the destination hostname
+      via the proxy, not local DNS, before this crate (or a future
+      `tor-client-rust` reuse, see the cross-repo item below) is trusted to
+      route anything through a SOCKS relay - see DESIGN.md "Identity
+      metadata leaks".
+
 ## P1 — response fidelity
 - [ ] Binary response bodies: `add_content` takes `serde_json::Value`, which
       can't hold raw bytes; bodies are currently `String::from_utf8_lossy`'d.

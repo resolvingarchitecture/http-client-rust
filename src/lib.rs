@@ -92,6 +92,15 @@ const FORWARDED_HEADERS: &[&str] = &[
     HEADER_USER_AGENT,
 ];
 
+/// Sent whenever a caller's `Envelope` has no `User-Agent` header of its own. Without this,
+/// `ureq` is documented to inject its own `ureq/<version>` on any request with none set -
+/// identifying the exact library to every destination and any on-path observer, a real
+/// fingerprinting signal. A generic, widely-shared value instead - deliberately not reflecting
+/// this library or its version - matches Tor Browser's own practice of giving every user an
+/// identical, unremarkable fingerprint. See DESIGN.md "Identity metadata leaks".
+const DEFAULT_USER_AGENT: &str =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0";
+
 /// A plain HTTP/HTTPS client. One `ureq::Agent`, rebuilt on [`start`](Self::start).
 pub struct HttpClient {
     trust_all_certs: bool,
@@ -242,6 +251,9 @@ impl HttpClient {
                         builder = builder.header(*name, v);
                     }
                 }
+                if !matches!(envelope.header(HEADER_USER_AGENT), Some(Value::String(_))) {
+                    builder = builder.header(HEADER_USER_AGENT, DEFAULT_USER_AGENT);
+                }
                 for (name, value) in &header_overrides {
                     builder = builder.header(*name, value);
                 }
@@ -261,6 +273,9 @@ impl HttpClient {
                     if let Some(Value::String(v)) = envelope.header(name) {
                         builder = builder.header(*name, v);
                     }
+                }
+                if !matches!(envelope.header(HEADER_USER_AGENT), Some(Value::String(_))) {
+                    builder = builder.header(HEADER_USER_AGENT, DEFAULT_USER_AGENT);
                 }
                 for (name, value) in &header_overrides {
                     builder = builder.header(*name, value);

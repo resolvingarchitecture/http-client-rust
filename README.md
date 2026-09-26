@@ -55,6 +55,18 @@ cargo test        # includes two live GET tests (http/https resolvingarchitectur
 cargo clippy --all-targets
 ```
 
+## Identity metadata leaks
+
+**Fixed 2026-09-26**, the same class of bug found and fixed in
+`http-client-java`/`-cpp`/`-python` and `1m5-remnant`'s Android `TorClient`:
+this client used to set no explicit default `User-Agent`, leaving `ureq`
+free to inject its own (documented as `ureq/<version>`) on any request with
+none set. Now defaults to a generic, widely-shared browser value instead -
+verified with `cargo build`/`cargo test` (6 tests + doctest, all pass,
+including the live network tests). See `DESIGN.md` "Identity metadata
+leaks" for the still-open SOCKS5 DNS-resolution check, which does need real
+verification, not just assumed from `ureq`'s advertised `socks5://` support.
+
 ## Status
 
 Early. GET/POST/PUT/DELETE over HTTP and HTTPS via [`ureq`](https://crates.io/crates/ureq)

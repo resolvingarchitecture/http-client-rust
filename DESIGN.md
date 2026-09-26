@@ -71,6 +71,47 @@ the protocol-service use case exercise) and lossy for binary ones. Proper
 binary support (base64, or a `ra-common-rust` content type that isn't
 `serde_json::Value`) is deferred — see `TODO.md`.
 
+## Identity metadata leaks
+
+Required standard for any HTTP client this project relies on for anonymized
+traffic (Tor/I2P), enforced here and checked against every sibling
+`http-client-*` port: no default header, response header, or connection
+behavior may reveal more about the requester than it has to.
+
+- **Fixed 2026-09-26**: this crate used to set no explicit default
+  `User-Agent`. `ureq` is documented to inject its own `User-Agent:
+  ureq/<version>` when a request has none - not independently re-verified
+  against this crate's exact pinned version by disassembly the way
+  `http-client-java`'s OkHttp behavior was, but the fix is the same
+  regardless of the exact string: `DEFAULT_USER_AGENT` (a generic,
+  widely-shared browser value) is now set on both the GET/DELETE and
+  POST/PUT request-builder branches whenever the caller hasn't supplied
+  one. Same fix already applied to `http-client-java` (confirmed via
+  bytecode), `http-client-cpp`/`http-client-python` (both previously
+  defaulted to the project-identifying literal `"ra-http-client"`, arguably
+  worse), `http-client-go`/`http-client-ts`, and `1m5-remnant`'s Android
+  `TorClient`. Verified with `cargo build`/`cargo test` (6 tests + doctest,
+  all pass, including the live network tests) - not by inspecting the
+  actual bytes sent, since this crate's tests have no local mock server to
+  capture request headers against (unlike `http-client-ts`'s equivalent
+  check).
+- **Not yet verified**: `ureq`'s `socks5://` proxy support is a documented,
+  advertised feature, presumed to hand the destination hostname to the SOCKS
+  layer for remote resolution rather than resolving it locally first -
+  matching what `http-client-cpp`'s `ConnectThroughSocks5` was directly
+  confirmed to do. That presumption hasn't been checked against `ureq`'s
+  actual source in this pass. Verify before relying on this crate (or a
+  future `tor-client-rust` reuse of it, per `TODO.md`'s cross-repo item) to
+  route anything through a SOCKS relay like `tor-client-java`'s
+  `TorSocksRelay` - a local resolution would leak the destination outside
+  the proxy entirely, the same bug found and fixed in
+  `bitcoin-client-java`'s bitcoinj DNS-seed lookups (`tor-client-java`,
+  2026-09-25).
+- **No server/inbound half** (see "Scope" above), so the third known leak
+  shape - a server-identifying response header, found and fixed in
+  `http-client-java`'s Jetty listener (`Server: Jetty(<version>)`) - doesn't
+  apply yet. Check for it if P3's server-hosting parity is ever built.
+
 ## Blocked-response detection
 
 `HTTPService.handleFailure` maps 403/408/410/418/451/511 onto a
